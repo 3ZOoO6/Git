@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# Check that APT sources are not empty, and if ever it is, print a message.
+# This is script is meant to be called from a APT hook, it should never fail.
+
+set -e
+
+get_sources() {
+	# Find APT data sources. For details, refer to sources.list(5).
+	find /etc/apt/ -name sources.list -type f,l
+	[ -d /etc/apt/sources.list.d/ ] || return 0
+	find /etc/apt/sources.list.d/ -maxdepth 1 -regextype posix-extended \
+		-regex '.*/[a-zA-Z0-9\._-]+\.(list|sources)$' -type f,l
+}
+
+not_empty() {
+	# Match lines that are neither empty nor a comment,
+	# if there's a match then the file is not empty.
+	grep -q -v -E '^\s*(#|$)' "$@"
+}
+
+SOURCES=$(get_sources)
+if [ "$SOURCES" ] && not_empty $SOURCES; then
+	exit 0
+fi
+
+NOTICE=Notice:
+if [ -z "${NO_COLOR+x}" ] && [ -z "${APT_NO_COLOR+x}" ] && [ -x /usr/bin/tput ] && [ -n "$TERM" ]; then
+	NOTICE="$(tput bold 2>/dev/null)$NOTICE$(tput sgr0 2>/dev/null)"
+fi
+
+cat << EOF >&2
+$NOTICE It seems that you don't have any APT data sources configured.
+$NOTICE You won't be able to update your system or install new packages.
+$NOTICE For more information, please refer to the online documentation at:
+$NOTICE https://www.kali.org/docs/general-use/kali-linux-sources-list-repositories/
+EOF

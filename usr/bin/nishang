@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+set -e
+
+kali-treecd "/usr/share/nishang" "nishang" 1 false

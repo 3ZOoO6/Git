@@ -1,0 +1,58 @@
+#!/usr/bin/env sh
+
+
+## Quit if anything goes wrong
+set -e
+
+
+## Old command
+old="$1"
+## New command
+new="$2"
+## URl to more information
+url="$3"
+## Have we printed output
+printed="no"
+
+
+## Print header banner
+print_head() {
+  if [ "${printed}" = "yes" ]; then
+    return
+  fi
+  printf '┏━(\033[1;31mMessage from Kali developers\033[00m)\n'
+  printf '┃\n'
+  printed="yes"
+}
+
+
+## Print footer
+print_tail() {
+  if [ "${printed}" = "no" ]; then
+    return
+  fi
+  printf '┗━\n'
+}
+
+
+## Quick how to use this
+[ -z "${new}" ] \
+  && echo "[-] ERROR: Missing commands. $0 <old-command> <new-command> [<url>]" >&2 \
+  && exit
+
+
+## Print output
+print_head
+cat <<END
+┃ The command ${old} is deprecated. Please use ${new} instead.
+┃
+END
+
+
+if [ ${url} ]; then
+  cat <<END
+┃ For more information, please see ${url}
+┃
+END
+fi
+print_tail

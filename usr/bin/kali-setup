@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+## Deprecated on 2021-07-23
+kali-deprecated kali-setup kali-tweaks

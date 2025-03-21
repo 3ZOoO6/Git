@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+
+import os
+import subprocess
+import gi
+
+from gi.repository import Gtk
+
+
+SETTINGS_DIR = os.path.expanduser("~/.config/kali-HiDPI")
+XSESSION_SETTINGS = os.path.join(SETTINGS_DIR, "xsession-settings")
+
+if os.environ.get("XDG_CURRENT_DESKTOP") != "XFCE":
+    print("ERROR: HiDPI mode only works on Xfce desktop", file=sys.stderr)
+    subprocess.run(["notify-send", "-i", "dialog-warning", "ERROR: HiDPI mode only works on Xfce desktop"])
+    exit(1)
+
+os.makedirs(SETTINGS_DIR, exist_ok=True)
+xsessionrc_file=os.path.expanduser("~/.xsessionrc")
+if not (os.path.exists(xsessionrc_file) and any(f"{SETTINGS_DIR}" in line.strip() for line in open(xsessionrc_file))):
+    with open(xsessionrc_file, "a") as f:
+        f.write(f"[ -r {XSESSION_SETTINGS} ] && . {XSESSION_SETTINGS}\n")
+
+def enable_hidpi():
+    with open(XSESSION_SETTINGS, "w") as f:
+        f.write("""
+export QT_SCALE_FACTOR=2
+export XCURSOR_SIZE=48
+export GDK_SCALE=2
+""")
+    os.environ["QT_SCALE_FACTOR"] = "2"
+    os.environ["XCURSOR_SIZE"] = "48"
+    os.environ["GDK_SCALE"] = "2"
+    current_theme = subprocess.check_output(["xfconf-query", "-c", "xfwm4", "-p", "/general/theme"]).decode().strip()
+    if "Kali" in current_theme:
+        subprocess.run(["xfconf-query", "-c", "xfwm4", "-p", "/general/theme", "-s", f"{current_theme}-xHiDPI"])
+    else:
+        subprocess.run(["xfconf-query", "-c", "xfwm4", "-p", "/general/theme", "-s", "Kali-Dark-xHiDPI"])
+    subprocess.run(["xfconf-query", "-c", "xsettings", "-p", "/Gdk/WindowScalingFactor", "-n", "-t", "int", "-s", "2"])
+
+def disable_hidpi():
+    os.environ["QT_SCALE_FACTOR"] = "1"
+    os.environ["XCURSOR_SIZE"] = ""
+    os.environ["GDK_SCALE"] = "1"
+    os.remove(XSESSION_SETTINGS)
+    current_theme = subprocess.check_output(["xfconf-query", "-c", "xfwm4", "-p", "/general/theme"]).decode().strip()
+    if "Kali" in current_theme:
+        subprocess.run(["xfconf-query", "-c", "xfwm4", "-p", "/general/theme", "-s", current_theme.replace("-xHiDPI", "")])
+    else:
+        subprocess.run(["xfconf-query", "-c", "xfwm4", "-p", "/general/theme", "-s", "Kali-Dark"])
+    subprocess.run(["xfconf-query", "-c", "xsettings", "-p", "/Gdk/WindowScalingFactor", "-s", "1"])
+
+def ask_confirmation():
+    def on_response(dialog, response_id):
+        dialog.hide()
+        Gtk.main_quit()
+        if response_id == Gtk.ResponseType.NO:
+            toggle_hidpi()
+    dialog = Gtk.MessageDialog(parent=None, flags=0, message_type=Gtk.MessageType.QUESTION,
+                                buttons=Gtk.ButtonsType.YES_NO, text="Do you want to keep this window-scaling mode?")
+    dialog.set_title("HiDPI mode")
+    dialog.set_modal(True)
+    dialog.connect("response", on_response)
+    dialog.show_all()
+    Gtk.main()
+
+def toggle_hidpi():
+    notify_message = ""
+    if os.path.isfile(XSESSION_SETTINGS):
+        disable_hidpi()
+        notify_message = "HiDPI mode disabled"
+    else:
+        enable_hidpi()
+        notify_message = "HiDPI mode enabled"
+
+    subprocess.run(["killall", "xfce4-notifyd"])
+    subprocess.run(["killall", "xfsettingsd"])
+    subprocess.Popen(["xfsettingsd"])
+    subprocess.run(["xfce4-panel", "-q"])
+    subprocess.Popen(["xfce4-panel"])
+    subprocess.run(["xfdesktop", "-Q"])
+    subprocess.Popen(["xfdesktop"])
+    subprocess.Popen(["notify-send", "-i", "dialog-information", notify_message])
+    ask_confirmation()
+
+if __name__ == "__main__":
+    toggle_hidpi()

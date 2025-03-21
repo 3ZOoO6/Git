@@ -1,0 +1,6 @@
+# تجاهل الملفات غير الضرورية
+__pycache__/
+*.log
+*.tar.xz
+*.zip
+.DS_Store

@@ -1,0 +1,65 @@
+#!/bin/bash
+
+#adaptor=$(ip addr | grep wlan1)
+NOW=$(date +"%d%m%y-%H%M%S")
+
+f_check_dbus(){
+if DBUS=$(pgrep dbus)
+then
+        echo "Dbus is running: $DBUS"
+else
+        echo "Dbus is not running. Staring..."
+        service dbus start
+fi
+}
+
+f_kismet(){
+    kismet -t Kismet-$NOW.kismet; --use-gpsd-gps # -t = Title of logfile
+}
+
+f_kismetdb_to_kml(){
+    clear
+    # export kml of all wireless data and copy files to sdcard
+    kismetdb_to_kml --in /captures/kismet/Kismet-$NOW.kismet --out "/captures/kismet/Kismet-$NOW.kml"
+}
+
+f_kismet_save(){
+
+echo "Detected kali-nh capture folder, moving capture files to /sdcard"
+mkdir -p /sdcard/captures
+cd /sdcard/captures
+cp /captures/kismet/Kismet-* .
+echo "Successfully copied all captures to /sdcard/captures/"
+sleep 3
+
+# option to erase files
+read -p "Would you like to secure erase all Kismet session files in /captures folder inside chroot? (y/n): " ERASEKISMET
+if [ "$ERASEKISMET" == "y" ]; then
+    echo "Removing capture files..."
+    wipe -f -i -r /captures/kismet/Kismet-*
+fi
+}
+
+f_cleanup(){
+pkill gpsd
+pkill socat
+rm -f /tmp/gps_out
+rm -f /tmp/gps
+}
+
+sleep 5
+
+#  She packed my bags last night pre-flight
+#  Zero hour nine a.m.
+
+f_check_dbus
+
+#  And I think it's gonna be a long long time...
+
+f_kismet
+f_kismetdb_to_kml
+f_kismet_save
+
+# Till touch down brings me round again to find
+
+f_cleanup

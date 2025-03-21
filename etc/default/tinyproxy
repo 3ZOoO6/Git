@@ -1,0 +1,13 @@
+### tinyproxy defaults
+
+# Edit to configure alternate config file...
+#
+# If running under systemd, please make sure to uncomment
+# both variables below!
+
+#CONFIG="/etc/tinyproxy/tinyproxy.conf"
+#FLAGS="-c $CONFIG"
+
+# Add more command line options, as desired...
+
+#FLAGS="$FLAGS ..."

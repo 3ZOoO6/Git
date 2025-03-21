@@ -1,0 +1,18 @@
+#!/bin/bash
+
+## Colour for bash prompt
+RED="\033[01;31m"
+RESET="\033[00m"
+
+## Check if running as root
+if [[ $EUID -ne 0 ]]; then
+   echo -e "${RED}[-]${RESET} This script must be ${RED}run as root${RESET}" 1>&2
+   exit 1
+fi
+
+## Stop service
+systemctl stop beef-xss
+
+## Check service status
+systemctl --no-pager -l status beef-xss
+
